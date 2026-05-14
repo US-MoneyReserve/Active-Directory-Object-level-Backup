@@ -23,6 +23,22 @@ Under `<BackupRoot>\<timestamp>\`:
 | `recyclebin-status.txt` | `ENABLED` or `DISABLED` | Reference |
 | `backup.log` | Timestamped run log | Reference |
 | `ntdsutil.log` | Raw ntdsutil output | Reference |
+| `manifest-sha256.txt` | Integrity manifest for all backup files | `Verify-ADBackupManifest.ps1` |
+
+
+
+## Security hardening added
+
+- **Integrity manifest**: Script now generates `manifest-sha256.txt` for every run.
+- **Fail-closed mode**: Use `-FailOnCriticalStep` to terminate if critical backup stages fail.
+- **Scoped exports**: Use `-ExportMode Scoped -SearchBase <DN>` to reduce data collection and runtime.
+- **Optional IFM skip**: Use `-SkipIFM` for non-DC dry runs or object/GPO-only snapshots.
+- **Attribute allowlists**: Object backup defaults to selected attributes (not all properties), reducing sensitive over-collection by default.
+
+### New companion scripts
+
+- `Restore-ADObjectsFromBackup.ps1`: Object-level restore helper with `-WhatIf` support and allowlisted attributes.
+- `Verify-ADBackupManifest.ps1`: Verifies file integrity against `manifest-sha256.txt`.
 
 ## Requirements
 
@@ -142,6 +158,24 @@ Copy the contents of the `IFM\` folder from the backup to `C:\IFM` on the new se
 6. Perform the change.
 7. Diff against `users.xml` / `groups.xml` / `ous.xml` to confirm only intended objects changed.
 8. Keep the backup for at least one tombstone lifetime (default 180 days) before deleting.
+
+
+
+## Object-level restore helper examples
+
+```powershell
+# Dry-run user and group attribute restore
+.\Restore-ADObjectsFromBackup.ps1 -BackupPath "Z:\USMR\IT\ADBackup\<timestamp>" -RestoreUsers -RestoreGroups -WhatIf
+
+# Apply group membership restoration only
+.\Restore-ADObjectsFromBackup.ps1 -BackupPath "Z:\USMR\IT\ADBackup\<timestamp>" -RestoreGroupMembership
+```
+
+## Verify backup integrity
+
+```powershell
+.\Verify-ADBackupManifest.ps1 -BackupPath "Z:\USMR\IT\ADBackup\<timestamp>"
+```
 
 ## License
 
